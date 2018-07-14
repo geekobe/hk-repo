@@ -5,12 +5,12 @@
 /************************ 定数宣言 ***************************/
 #define IN         255   /* 入力の種類(8ビット)              */
 #define OUT          4   /* 出力の種類(4通り)                */
-#define POP          2   /* 個体総数                         */
+#define POP        100   /* 個体総数                         */
 #define CROSSOVER  0.7   /* 交叉率（交叉の発生確率(=70%)）   */
 #define MUTATION  0.02   /* 突然変異率（=2%)                 */
 
 /******************* マップの情報の読み込み ******************/
-#include"map2.c"         /* int mapdata[WX][WY] などを初期化 */
+#include"map1.c"         /* int mapdata[WX][WY] などを初期化 */
 int map[WY][WX];         /* 作業エリア */
 
 /* 個体の情報 */
@@ -327,7 +327,6 @@ void determine_next_generation( )
     for(i=0;i<POP;i++){
       if(max_fitness <= fitness[i]){
           max_fitness = fitness[i];
-          //printf("max_fitness : %d \n", max_fitness);
           argmax_fitness = i;
       }
       sum_fitness += fitness[i];
@@ -354,9 +353,11 @@ void determine_next_generation( )
         if(pos_roulette <= sum_roulette){
           pop_selected = j;
           break;
+
         }
+        //printf("\nj : %d \n", j);
       }
-      //printf("pop_selected : %d \n", pop_selected);
+      //printf("\npop : %d pop_selected : %d \n", i, pop_selected);
       for(j=0;j<IN;j++){
         new_genotype[i][j] = genotype[pop_selected][j];
       }
@@ -373,7 +374,7 @@ void determine_next_generation( )
     for(i=0;i<POP-1;i++){
       if((CROSSOVER*100 - (rand()%101)) > 0){
         pos_crossover = rand()%IN;
-
+        //printf("\npop : %d pos_crossover : %d \n", i, pos_crossover);
         for(j=pos_crossover+1;j<IN;j++){
           temp_array[j] = new_genotype[i+1][j];
           new_genotype[i+1][j] = new_genotype[i][j];
@@ -385,12 +386,21 @@ void determine_next_generation( )
 
     /* 次に，突然変異では，全個体の全遺伝子（0～3）を対象として，突然変異率  */
     /* の生起確率で，0～3にランダムに変更しましょう．                        */
+    //printf("\ngenotype :\n");
+    for(i=0;i<POP;i++){
+
+      for(j=0;j<IN;j++){
+        //printf("%d", genotype[i][j]);
+      }
+      //printf("\n");
+    }
+
 
     //printf("\nnew_genotype :\n");
     for(i=0;i<POP;i++){
 
       for(j=0;j<IN;j++){
-        if((MUTATION*100 - (rand()%101/100)) > 0){
+        if((MUTATION*100 - (rand()%101)) > 0){
             new_genotype[i][j] = rand()%4;
         }
         //printf("%d", new_genotype[i][j]);
