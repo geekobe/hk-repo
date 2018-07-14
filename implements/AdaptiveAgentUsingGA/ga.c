@@ -383,7 +383,7 @@ void determine_next_generation( )
     for(i=0;i<POP;i++){
 
       for(j=0;j<IN;j++){
-        if(MUTATION*100 - (rand()%101/100) > 0){
+        if((MUTATION*100 - (rand()%101/100)) > 0){
             new_genotype[i][j] = rand()%4;
         }
       }
