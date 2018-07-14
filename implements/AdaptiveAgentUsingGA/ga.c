@@ -283,7 +283,7 @@ void calc_fitness( int steps )
       finish=0;   /* 何等かの原因で終了したら１にする */
       do{
           input = obtain_input( x, y );  /* 入力パターンの調査 */
-          output = genotype[n][input];  /* 行動出力 */
+          output = genotype[pop][input];  /* 行動出力 */
 
           /* 次の場所を決める */
           dx = x + move_x[output];    /* 次の場所（仮） */
