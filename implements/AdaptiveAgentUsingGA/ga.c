@@ -5,12 +5,12 @@
 /************************ 定数宣言 ***************************/
 #define IN         255   /* 入力の種類(8ビット)              */
 #define OUT          4   /* 出力の種類(4通り)                */
-#define POP        100   /* 個体総数                         */
+#define POP          2   /* 個体総数                         */
 #define CROSSOVER  0.7   /* 交叉率（交叉の発生確率(=70%)）   */
 #define MUTATION  0.02   /* 突然変異率（=2%)                 */
 
 /******************* マップの情報の読み込み ******************/
-#include"map1.c"         /* int mapdata[WX][WY] などを初期化 */
+#include"map2.c"         /* int mapdata[WX][WY] などを初期化 */
 int map[WY][WX];         /* 作業エリア */
 
 /* 個体の情報 */
@@ -307,7 +307,7 @@ void calc_fitness( int steps )
       }while( ( x != GOAL_X || y != GOAL_Y ) && i<=steps && finish==0 );
       /* 最終的な適応度（評価値，ゴールとの現在位置との差で計算）*/
       fitness[pop] = 1 + abs(GOAL_X - START_X) + abs(GOAL_Y - START_Y ) - abs(GOAL_X - x) - abs(GOAL_Y - y);
-      printf("%d\n", fitness[pop]);
+      //printf("pop%d : %d \n", pop, fitness[pop]);
     }
 }
 
@@ -318,22 +318,27 @@ void determine_next_generation( )
 {
     int i, j, k, argmax_fitness, max_fitness, sum_fitness=0;          /*  作業用変数   */
     int sum_roulette=0, pop_selected, pos_roulette, pos_crossover; /*  作業用変数   */
-    int elitest[IN];                                               /*  エリート個体   */
+    int elitest[IN], temp_array[IN];                                               /*  エリート個体   */
     int new_genotype[POP][IN];                                     /*  新しい遺伝子型   */
 
     /* まずはエリート（最優秀）個体の遺伝子型を elitest[IN] に保存しよう．   */
     max_fitness = fitness[0];
 
     for(i=0;i<POP;i++){
-      if(max_fitness < fitness[i]){
+      if(max_fitness <= fitness[i]){
           max_fitness = fitness[i];
+          //printf("max_fitness : %d \n", max_fitness);
           argmax_fitness = i;
       }
       sum_fitness += fitness[i];
     }
+    //printf("argmax_fitness : %d \n", argmax_fitness);
+    //printf("sum_fitness : %d \n", sum_fitness);
 
+    //printf("elitest : \n");
     for(i=0;i<IN;i++){
       elitest[i] = genotype[argmax_fitness][i];
+      //printf("%d", elitest[i]);
     }
 
     /* ルーレット選択は，まずは全ての個体の適応度の和を sum として求め，     */
@@ -346,12 +351,12 @@ void determine_next_generation( )
 
       for(j=0;j<POP;j++){
         sum_roulette += fitness[j];
-        if(pos_roulette < sum_roulette){
+        if(pos_roulette <= sum_roulette){
           pop_selected = j;
           break;
         }
       }
-
+      //printf("pop_selected : %d \n", pop_selected);
       for(j=0;j<IN;j++){
         new_genotype[i][j] = genotype[pop_selected][j];
       }
@@ -370,8 +375,9 @@ void determine_next_generation( )
         pos_crossover = rand()%IN;
 
         for(j=pos_crossover+1;j<IN;j++){
-            new_genotype[i][j] = new_genotype[i+1][j];
-            new_genotype[i+1][j] = new_genotype[i][j];
+          temp_array[j] = new_genotype[i+1][j];
+          new_genotype[i+1][j] = new_genotype[i][j];
+          new_genotype[i][j] = temp_array[j];
         }
 
       }
@@ -380,14 +386,17 @@ void determine_next_generation( )
     /* 次に，突然変異では，全個体の全遺伝子（0～3）を対象として，突然変異率  */
     /* の生起確率で，0～3にランダムに変更しましょう．                        */
 
+    //printf("\nnew_genotype :\n");
     for(i=0;i<POP;i++){
 
       for(j=0;j<IN;j++){
         if((MUTATION*100 - (rand()%101/100)) > 0){
             new_genotype[i][j] = rand()%4;
         }
+        //printf("%d", new_genotype[i][j]);
+        genotype[i][j] = new_genotype[i][j];
       }
-
+      //printf("\n");
     }
 
     /* 最後に，最初に取っておいた現世代のエリート個体の遺伝子側を，No.0 の   */
@@ -395,7 +404,7 @@ void determine_next_generation( )
     /* となります．                                                          */
 
     for(i=0;i<IN;i++){
-      new_genotype[0][i] = elitest[i];
+      genotype[0][i] = elitest[i];
     }
 
     /* 作業は以上で終了です．上の作業をするために，この関数内で適宜，変数を  */
