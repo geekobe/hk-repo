@@ -1,16 +1,3 @@
-/*************************************************************/
-/* H30年度情報工学EP提供講義「人工知能」レポート課題         */
-/* GA (遺伝的アルゴリズム）による即応ルールの最適化(ga.c)    */
-/*         担当：長尾智晴（nagao@ynu.ac.jp）TEL.045-339-4131 */
-/*                                                           */
-/* 提出期限：2018年8月8日(水)24:00までにメールで提出のこと.  */
-/*   レポートの内容は次のようにすること（メール中にテキスト  */
-/*   として記載すれば良いものとする．別紙の添付は不要．）    */
-/*     ・メールの件名：学籍番号  氏名                        */
-/*     ・ソースリスト                                        */
-/*     ・考察                                                */
-/*     ・感想（この課題 or 講義に関するもの（採点対象外））  */
-/*************************************************************/
 #include<stdio.h>
 #include<stdlib.h>       /* for rand(), srand()  */
 #include<time.h>         /* for time()           */
@@ -76,7 +63,7 @@ int main(void)
     printf("hit any key to finish:");
     c = getch();
     printf("\n");
-    
+
     return 0;
 }
 
@@ -159,7 +146,7 @@ void disp_action( int n, int steps )
         /* 次の場所を決める */
         dx = x + move_x[output];    /* 次の場所（仮） */
         dy = y + move_y[output];    /* 次の場所（仮） */
-        if ( dx>0 && dx<WX-1 && dy>0 && dy<WY-1 && 
+        if ( dx>0 && dx<WX-1 && dy>0 && dy<WY-1 &&
              ( map[dy][dx] != 1 && map[dy][dx] != 4 ) ){
             /* 次の場所が壁(=1)および通過軌跡(=4)以外なら動かす */
             map[y][x] = 4;  /* 今居る場所を通過軌跡(=4)にする */
@@ -274,13 +261,53 @@ void calc_fitness( int steps )
     /* 全個体を動かして適応度 fitness[0～POP-1] を求めましょう．    */
     /* 毎回，最初にマップを初期化してから動かします．disp_action を */
     /* コピペしてから直すと楽です．                                 */
+    int pop;             /* ループ用変数                   */
+    int x, y, i, c;      /* 作業変数                   */
+    int dx, dy;          /* 移動先の座標               */
+    int input, output;   /* 入力・出力を数値化したもの */
+    int fit,finish,kbd;
 
-    /* スタート地点から，それぞれの位置での入力値を元に，遺伝子型に */
-    /* 書かれた行動規則に従って動かします．次の場所が，壁(=1)か，移 */
-    /* 動軌跡(=4)，あるいはゴール(=3)になったら，その座標(x,y)から，*/
-    /* 次式を使って求めます．                                       */
-    /* fitness = 1 + abs(GOAL_X - START_X) + abs(GOAL_Y - START_Y ) */
-    /*           - abs(GOAL_X - x) - abs(GOAL_Y - y);               */
+    for(pop=0;pop<POP;pop++){
+      /* マップの初期化 */
+      for(y=0;y<WY;y++){
+          for(x=0;x<WX;x++){
+              map[y][x] = mapdata[y][x];
+          }
+      }
+      map[START_Y][START_X] = 2;    /* スタート地点の設定    */
+      map[GOAL_Y][GOAL_X]   = 3;    /* ゴール地点の設定      */
+      x = START_X;                  /* 現在地のX座標の初期化 */
+      y = START_Y;                  /* 現在地のY座標の初期化 */
+      /* 個体No.n を steps 回だけ動かす */
+      i=1;        /* i:ステップ数を表す変数           */
+      finish=0;   /* 何等かの原因で終了したら１にする */
+      do{
+          input = obtain_input( x, y );  /* 入力パターンの調査 */
+          output = genotype[n][input];  /* 行動出力 */
+
+          /* 次の場所を決める */
+          dx = x + move_x[output];    /* 次の場所（仮） */
+          dy = y + move_y[output];    /* 次の場所（仮） */
+          if ( dx>0 && dx<WX-1 && dy>0 && dy<WY-1 &&
+               ( map[dy][dx] != 1 && map[dy][dx] != 4 ) ){
+              /* 次の場所が壁(=1)および通過軌跡(=4)以外なら動かす */
+              map[y][x] = 4;  /* 今居る場所を通過軌跡(=4)にする */
+              x = dx;         /* 現在地のX座標を更新する */
+              y = dy;         /* 現在地をY座標を更新する */
+              map[y][x] = 2;  /* 移動先の数値を直す      */
+              /* ゴールに到達したら終了する */
+              if ( x == GOAL_X && y == GOAL_Y ){
+                finish = 1;
+              }
+          } else {
+              finish=1;  /* 即終了 */
+          }
+          /* ステップを増やす */
+          i++;
+      }while( ( x != GOAL_X || y != GOAL_Y ) && i<=steps && finish==0 );
+      /* 最終的な適応度（評価値，ゴールとの現在位置との差で計算）*/
+      fitness[pop] = 1 + abs(GOAL_X - START_X) + abs(GOAL_Y - START_Y ) - abs(GOAL_X - x) - abs(GOAL_Y - y);
+    }
 }
 
 
@@ -288,12 +315,48 @@ void determine_next_generation( )
 /* シンプルＧＡ方式（ルーレット選択）＋エリート保存で次世代の個体を求める    */
 /* ここでは普通にルーレット選択してから，0番の個体にエリートを戻すこととする */
 {
+    int i, j, k, argmax_fitness, max_fitness, sum_fitness=0;          /*  作業用変数   */
+    int sum_roulette=0, pop_selected, pos_roulette, pos_crossover; /*  作業用変数   */
+    int elitest[IN];                                               /*  エリート個体   */
+    int new_genotype[POP][IN];                                     /*  新しい遺伝子型   */
+
     /* まずはエリート（最優秀）個体の遺伝子型を elitest[IN] に保存しよう．   */
-    
+    max_fitness = fitness[0];
+
+    for(i=0;i<POP;i++){
+      if(max_fitness < fitness[i]){
+          max_fitness = fitness[i];
+          argmax_fitness = i;
+      }
+      sum_fitness += fitness[i];
+    }
+
+    for(i=0;i<IN;i++){
+      elitest[i] = genotype[argmax_fitness][i];
+    }
+
+
     /* ルーレット選択は，まずは全ての個体の適応度の和を sum として求め，     */
     /* 次に random() % sum として [0,sum-1]の乱数でルーレットの位置を決め，  */
     /* それが何番目の個体に該当するかを調べましょう．これを POP回おこなって，*/
     /* 新しい個体の遺伝子型 new_genotype[][] に保存しましょう．              */
+
+    pos_roulette = rand() % sum_fitness;
+    for(i=0;i<POP;i++){
+
+      for(j=0;j<POP;j++){
+        sum_roulette += fitness[j];
+        if(pos_roulette < sum_roulette){
+          pop_selected = j;
+          break;
+        }
+      }
+
+      for(j=0;j<IN;j++){
+        new_genotype[i][j] = genotype[pop_selected][j];
+      }
+      sum_roulette=0;
+    }
 
     /* 次に，個体を２個ずつ組み合わせて１点交叉させます．                    */
     /* この際，交叉率の確率で交叉が生じることとします．                      */
@@ -301,12 +364,43 @@ void determine_next_generation( )
     /* して，子１：親１の前半＋親２の後半，子２：親２の前半＋親１の後半  に  */
     /* して新しい遺伝子型を作ります．                                        */
 
+    for(i=0;i<POP-1;i++){
+      if(CROSSOVER*100 - (rand()%101) > 0){
+        pos_crossover = rand()%IN;
+
+        for(j=0;j<=pos_crossover;j++){
+            new_genotype[i][j] = new_genotype[i][j];
+            new_genotype[i+1][j] = new_genotype[i+1][j];
+        }
+
+        for(j=pos_crossover+1;j<IN;j++){
+            new_genotype[i][j] = new_genotype[i+1][j];
+            new_genotype[i+1][j] = new_genotype[i][j];
+        }
+
+      }
+    }
+
     /* 次に，突然変異では，全個体の全遺伝子（0～3）を対象として，突然変異率  */
     /* の生起確率で，0～3にランダムに変更しましょう．                        */
+
+    for(i=0;i<POP;i++){
+
+      for(j=0;j<IN;j++){
+        if(MUTATION*100 - (rand()%101/100) > 0){
+            new_genotype[i][j] = rand()%4;
+        }
+      }
+
+    }
 
     /* 最後に，最初に取っておいた現世代のエリート個体の遺伝子側を，No.0 の   */
     /* 遺伝子側に強制的にコピーしましょう．つまり No.0が常に最大適応度の個体 */
     /* となります．                                                          */
+
+    for(i=0;i<IN;i++){
+      new_genotype[0][i] = elitest[i];
+    }
 
     /* 作業は以上で終了です．上の作業をするために，この関数内で適宜，変数を  */
     /* 宣言して利用して下さい．                                              */
