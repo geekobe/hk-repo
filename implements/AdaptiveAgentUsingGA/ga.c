@@ -307,6 +307,7 @@ void calc_fitness( int steps )
       }while( ( x != GOAL_X || y != GOAL_Y ) && i<=steps && finish==0 );
       /* 最終的な適応度（評価値，ゴールとの現在位置との差で計算）*/
       fitness[pop] = 1 + abs(GOAL_X - START_X) + abs(GOAL_Y - START_Y ) - abs(GOAL_X - x) - abs(GOAL_Y - y);
+      printf("%d\n", fitness[pop]);
     }
 }
 
@@ -335,14 +336,13 @@ void determine_next_generation( )
       elitest[i] = genotype[argmax_fitness][i];
     }
 
-
     /* ルーレット選択は，まずは全ての個体の適応度の和を sum として求め，     */
     /* 次に random() % sum として [0,sum-1]の乱数でルーレットの位置を決め，  */
     /* それが何番目の個体に該当するかを調べましょう．これを POP回おこなって，*/
     /* 新しい個体の遺伝子型 new_genotype[][] に保存しましょう．              */
 
-    pos_roulette = rand() % sum_fitness;
     for(i=0;i<POP;i++){
+      pos_roulette = rand() % sum_fitness;
 
       for(j=0;j<POP;j++){
         sum_roulette += fitness[j];
@@ -355,6 +355,7 @@ void determine_next_generation( )
       for(j=0;j<IN;j++){
         new_genotype[i][j] = genotype[pop_selected][j];
       }
+
       sum_roulette=0;
     }
 
