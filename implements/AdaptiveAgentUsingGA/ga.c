@@ -366,13 +366,8 @@ void determine_next_generation( )
     /* ‚µ‚ÄV‚µ‚¢ˆâ“`qŒ^‚ğì‚è‚Ü‚·D                                        */
 
     for(i=0;i<POP-1;i++){
-      if(CROSSOVER*100 - (rand()%101) > 0){
+      if((CROSSOVER*100 - (rand()%101)) > 0){
         pos_crossover = rand()%IN;
-
-        for(j=0;j<=pos_crossover;j++){
-            new_genotype[i][j] = new_genotype[i][j];
-            new_genotype[i+1][j] = new_genotype[i+1][j];
-        }
 
         for(j=pos_crossover+1;j<IN;j++){
             new_genotype[i][j] = new_genotype[i+1][j];
