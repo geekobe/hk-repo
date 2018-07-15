@@ -7,10 +7,11 @@
 #define OUT          4   /* 出力の種類(4通り)                */
 #define POP        100   /* 個体総数                         */
 #define CROSSOVER  0.7   /* 交叉率（交叉の発生確率(=70%)）   */
-#define MUTATION  0.02   /* 突然変異率（=2%)                 */
-
+#define MUTATION  0.2   /* 突然変異率（default=2%)                 */
+#define SCHEDULE_FLAG  1       /* 0 -> 突然変異率は一定  1 -> 突然変異率を500世代ごとに半減   */
+#define SCHEDULE_GENERATION 500
 /******************* マップの情報の読み込み ******************/
-#include"map1.c"         /* int mapdata[WX][WY] などを初期化 */
+#include"map3.c"         /* int mapdata[WX][WY] などを初期化 */
 int map[WY][WX];         /* 作業エリア */
 
 /* 個体の情報 */
@@ -21,6 +22,7 @@ int genotype[POP][IN];    /* 遺伝子型 [No.][センサ入力値]    */
 int move_x[OUT] = { 0, 1, 0, -1 };
 int move_y[OUT] = { -1, 0, 1, 0 };
 int fitness[POP];           /* 個体の適応度（評価値）        */
+
 
 /***************** 関数のプロトタイプ宣言 ********************/
 void disp_map(void);                   /* マップを表示する   */
@@ -34,7 +36,7 @@ void generation( int n );              /* n 回世代交代させる */
 /* ★下記の２つの関数を作ることが，ここでの課題です．        */
 /*************************************************************/
 void calc_fitness( int steps );    /* 各個体の適応度を求める */
-void determine_next_generation( ); /* 次世代の個体群を求める */
+void determine_next_generation( float mutation_rate ); /* 次世代の個体群を求める */
 /*************************************************************/
 
 
@@ -206,7 +208,8 @@ void generation( int n )
     int i,j,max,maxnum,c;    /* 作業変数           */
     int maximum;             /* 理論上の最大適応度 */
     int kbd;
-
+    float mutation = MUTATION;        /* 突然変異率（=2%)             */
+    // printf("first %f\n", mutation);
     /* 理論上の最大適応度（今回の適応度定義式による）  */
     /* （現在位置がゴール位置に一致したとき最大になる）*/
     maximum = 1 + abs(GOAL_X - START_X) + abs(GOAL_Y - START_Y );
@@ -215,8 +218,12 @@ void generation( int n )
     /* 世代交代 */
     i=0;  /* i:世代数 */
     do{
+        if((SCHEDULE_FLAG==1)&&(i%SCHEDULE_GENERATION==0)){
+          mutation *= 0.5;
+        }
+        // printf("%f\n", mutation);
         /* 次世代の POP個の個体を求める */
-        determine_next_generation( );
+        determine_next_generation(mutation);
         /* 各個体の適応度を求める(引数は動かす最大step数) */
         calc_fitness( 100 );
         /* 最大適応度を求める */
@@ -312,7 +319,7 @@ void calc_fitness( int steps )
 }
 
 
-void determine_next_generation( )
+void determine_next_generation(float mutation_rate)
 /* シンプルＧＡ方式（ルーレット選択）＋エリート保存で次世代の個体を求める    */
 /* ここでは普通にルーレット選択してから，0番の個体にエリートを戻すこととする */
 {
@@ -320,7 +327,8 @@ void determine_next_generation( )
     int sum_roulette=0, pop_selected, pos_roulette, pos_crossover; /*  作業用変数   */
     int elitest[IN], temp_array[IN];                                               /*  エリート個体   */
     int new_genotype[POP][IN];                                     /*  新しい遺伝子型   */
-
+    float mutation = mutation_rate;                                        /*  突然変異率   */
+    // printf("%f",mutation);
     /* まずはエリート（最優秀）個体の遺伝子型を elitest[IN] に保存しよう．   */
     max_fitness = fitness[0];
 
@@ -400,7 +408,7 @@ void determine_next_generation( )
     for(i=0;i<POP;i++){
 
       for(j=0;j<IN;j++){
-        if((MUTATION*100 - (rand()%101)) > 0){
+        if((mutation*100 - (rand()%101)) > 0){
             new_genotype[i][j] = rand()%4;
         }
         //printf("%d", new_genotype[i][j]);
